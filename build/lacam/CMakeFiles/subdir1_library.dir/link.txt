@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsubdir1_library.a CMakeFiles/subdir1_library.dir/src/utils.cpp.o
+/usr/bin/ranlib libsubdir1_library.a

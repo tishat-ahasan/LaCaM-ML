@@ -1,0 +1,1 @@
+solved: 7ms	makespan: 44 (lb=44, ub=1)	sum_of_costs: 1072 (lb=903, ub=1.19)	sum_of_loss: 1015 (lb=903, ub=1.13)
