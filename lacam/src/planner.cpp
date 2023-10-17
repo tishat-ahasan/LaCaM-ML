@@ -12,8 +12,8 @@ Constraint::Constraint() : who(std::vector<int>()), where(Vertices()), depth(0)
 }
 
 Constraint::Constraint(Constraint* parent, int i, Vertex* v)
-    : who(parent->who), where(parent->where), depth(parent->depth + 1),
-    net(torch::jit::load("./Data/models/traced_model.pt"));
+    : who(parent->who), where(parent->where), depth(parent->depth + 1)
+    
 {
   ++LNODE_CNT;
   who.push_back(i);
@@ -30,7 +30,8 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       priorities(C.size(), 0),
       order(C.size(), 0),
       search_tree(std::queue<Constraint*>()),
-      h(_h)
+      h(_h),
+      net(torch::jit::load("./Data/models/traced_model.pt"))
 {
   ++HNODE_CNT;
   search_tree.push(new Constraint());
@@ -38,16 +39,23 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
 
   bool is_print = false;
 
+   // try {
+   //      myModule = torch::jit::load("./Data/models/traced_model.pt");
+   //  } catch (const c10::Error& e) {
+   //      std::cerr << "Error loading the script: " << e.what() << std::endl;
+   //      return -1;
+   //  }
+
   std::vector<float> cpp_vector = {0.11, 0.15, 0.94, 0.06, 21.0, 1.0, 4.7, 5.76, 77.0, 0.0, 12.91, 14.65, 0.0, 0.0, 8.0, 59.0, 73.0, 140.0};
   torch::Tensor x = torch::from_blob(cpp_vector.data(), {cpp_vector.size()}, torch::kFloat32);
   x = x.unsqueeze(0);
   std::cout<<x<<"\n";
-  // std::vector<torch::jit::IValue> input;
-  // input.push_back(x);
-  // auto out = net.forward(input);
-  // torch::Tensor out_tensor = out.toTensor();
-  // std::cout << out_tensor[0][0].item<float>();
-  // std::cout << typeid(out).name()<<"\n";
+  std::vector<torch::jit::IValue> input;
+  input.push_back(x);
+  auto out = net.forward(input);
+  torch::Tensor out_tensor = out.toTensor();
+  std::cout << out_tensor[0][0].item<float>();
+  std::cout << typeid(out).name()<<"\n";
   // ************************************************ Distance ******************************************
                 // Percentages of agent at goal and non-goal position 2
                 // Normalised (wrt nodes) Manhattan Distance (min, max, avg, std) 4

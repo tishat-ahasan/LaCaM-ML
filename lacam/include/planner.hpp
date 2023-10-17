@@ -7,6 +7,8 @@
 #include "graph.hpp"
 #include "instance.hpp"
 #include "utils.hpp"
+#include<torch/torch.h>
+#include<torch/script.h>
 
 
 // low-level search node
@@ -18,7 +20,7 @@ struct Constraint {
   Constraint();
   Constraint(Constraint* parent, int i, Vertex* v);  // who and where
   ~Constraint();
-  torch::jit::script::Module net;
+  
 };
 
 // high-level search node
@@ -32,6 +34,7 @@ struct Node {
   std::vector<int> order;
   std::queue<Constraint*> search_tree;
   const std::string h;
+  torch::jit::script::Module net;
 
   Node(Config _C, DistTable& D, const std::string& _h, Node* _parent = nullptr);
   ~Node();
