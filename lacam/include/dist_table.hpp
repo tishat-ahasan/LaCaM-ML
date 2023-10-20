@@ -11,6 +11,9 @@ struct DistTable {
   const int K;  // number of vertices
   std::vector<std::vector<int> >
       table;  // distance table, index: agent-id & vertex-id
+  std::vector<std::vector<int> >
+      conf_table;  // conflict table
+  std::vector<int> conf_count;
   std::vector<std::queue<Vertex*> > OPEN;  // search queue
 
   int get(int i, int v_id);   // agent, vertex-id
@@ -20,4 +23,6 @@ struct DistTable {
   DistTable(const Instance* ins);
 
   void setup(const Instance* ins);  // initialization
+  void update_conf(int i, int j);
+  int get_conf(int i);
 };

@@ -1,13 +1,13 @@
 #include "../include/dist_table.hpp"
 
 DistTable::DistTable(const Instance& ins)
-    : K(ins.G.V.size()), table(ins.N, std::vector<int>(K, K))
+    : K(ins.G.V.size()), table(ins.N, std::vector<int>(K, K)), conf_table(ins.N, std::vector<int>(ins.N, 0)), conf_count(ins.N)
 {
   setup(&ins);
 }
 
 DistTable::DistTable(const Instance* ins)
-    : K(ins->G.V.size()), table(ins->N, std::vector<int>(K, K))
+    : K(ins->G.V.size()), table(ins->N, std::vector<int>(K, K)), conf_table(ins->N, std::vector<int>(ins->N, 0)), conf_count(ins->N)
 {
   setup(ins);
 }
@@ -44,7 +44,17 @@ int DistTable::get(int i, int v_id)
     }
     if (n->id == v_id) return d_n;
   }
-  return K;
+  return K;}
+
+void DistTable::update_conf(int i, int j) { 
+  if (conf_table[i][j] ==0){
+    conf_table[i][j] ==1;
+    conf_count[i]++;
+  } 
+  return;
 }
+int DistTable::get_conf(int i) { return conf_count[i]; }
+
 
 int DistTable::get(int i, Vertex* v) { return get(i, v->id); }
+

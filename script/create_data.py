@@ -6,16 +6,19 @@ agent = "40"
 heuristic = "distance"
 seed = 1
 heuristics = ['distance', 'conflict', 'neighbour']
-file_path = 'Data/Supervised/32by32.txt'
+file_path = 'Data/Supervised/32by32_updated.txt'
 file = open(file_path, 'a')
 
-header = 'obstacle_p,agent_p,a_g,a_ng,d_max,d_min,d_avg,d_std,c_max,c_min,c_avg,c_std,ng_0,ng_1,ng_2,ng_3,ng_4,y1,y2,y3'
+header = 'obstacle_p,agent_p,a_g,a_ng,d_below,d_above,d_max,d_min,d_avg,d_std,c_below,c_above,c_max,c_min,c_avg,c_std,ng_0,ng_1,ng_2,ng_3,ng_4,y1,y2,y3'
 file.write(header+'\n')
 total_nodes = 922.0
 obstacles = 102.0
 
+# print("here")
+
 for seed in range(100):
     for agent in [30, 40, 50, 60, 70, 80, 90, 100, 120, 140]:
+        # print("Inside agent")
         Node = {}
         Node = {}
         results = {}
@@ -30,6 +33,7 @@ for seed in range(100):
                 # 'universal_newlines=True' converts the output to text
             except subprocess.CalledProcessError as e:
                 result = e.output  # Capture the error message if 'sudo apt update' fails
+                print("Error: ", result)
 
             # Print the output
             r1 = result.split('\n')
@@ -39,10 +43,10 @@ for seed in range(100):
             LNode_result = stats[1].split(":")
             Node[heuristic] = [HNode_result[1]]
             Node[heuristic].append(LNode_result[1])
-        sorted_dict = dict(sorted(Node.items(), key=lambda item: (item[1][0], item[1][1])))
-        print(seed, agent, sorted_dict)
-        winner = next(iter(sorted_dict))
-        # print("Winner: ", winner)
+        # sorted_dict = dict(sorted(Node.items(), key=lambda item: (item[1][0], item[1][1])))
+        # winner = next(iter(sorted_dict))
+        winner, _ = min(Node.items(), key=lambda item: (item[1][0], item[1][1]))
+        print(seed, agent, Node, ",Winner: ", winner)
         Y[winner] = 1
         label = ""
         for k,v in Y.items():
