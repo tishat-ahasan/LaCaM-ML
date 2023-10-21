@@ -38,7 +38,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   const auto N = C.size();
 
   bool is_print = false;
-  bool generate_dataset = true;
+  bool generate_dataset = false;
 
    // try {
    //      myModule = torch::jit::load("./Data/models/traced_model.pt");
@@ -145,6 +145,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   // 'd_max_node', 'd_min_node','d_avg_node', 'd_std_node', 
   // 'c_max_node', 'c_min_node', 'c_avg_node','c_std_node', 
   // 'ng_0', 'ng_1', 'ng_2', 'ng_3', 'ng_4',
+
 
   // set priorities
 
@@ -257,6 +258,17 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
                 [&](int i, int j) { return priorities[i] > priorities[j]; });}}
 
   else{
+
+    // 'obstacle_p', 'agent_p', 'a_g', 'a_ng', 'd_below', 'd_above', 1-6
+    //    'd_max_agent', 'd_min_agent', 'd_avg_agent', 'd_std_agent', 'c_below', 7-11
+    //    'c_above', 'c_max_agent', 'c_min_agent', 'c_avg_agent', 'c_std_agent', 12-16
+    //    'd_max_node', 'd_min_node', 'd_avg_node', 'd_std_node', 'c_max_node', 17-21
+    //    'c_min_node', 'c_avg_node', 'c_std_node', 'ng_0', 'ng_1', 'ng_2', 22-27
+    //    'ng_3', 'ng_4' 28-29
+    // total 29
+
+
+
     float total_nodes = 922.0;
     float obstacles = 102.0;
     std::vector<float> cpp_vector;
@@ -264,34 +276,38 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     cpp_vector.push_back(N/total_nodes);                    //2
     cpp_vector.push_back(a_g);                              //3
     cpp_vector.push_back(a_ng);                             //4
-    cpp_vector.push_back(max_dist/N);                       //5
-    cpp_vector.push_back(min_dist/N);                       //6
-    cpp_vector.push_back(average_dist/N);                   //7
-    cpp_vector.push_back(std_dist/N);                       //8
-    cpp_vector.push_back(max_conf/N);                       //9
-    cpp_vector.push_back(min_conf/N);                       //10
-    cpp_vector.push_back(average_conf/N);                   //11
-    cpp_vector.push_back(std_conf/N);                       //12
-    cpp_vector.push_back(max_dist/total_nodes);             //13
-    cpp_vector.push_back(min_dist/total_nodes);             //14
-    cpp_vector.push_back(average_dist/total_nodes);         //15
-    cpp_vector.push_back(std_dist/total_nodes);             //16
-    cpp_vector.push_back(max_conf/total_nodes);             //17
-    cpp_vector.push_back(min_conf/total_nodes);             //18
-    cpp_vector.push_back(average_conf/total_nodes);         //19
-    cpp_vector.push_back(std_conf/total_nodes);             //20
-    cpp_vector.push_back(neighbour[0]/N);                     //21
-    cpp_vector.push_back(neighbour[1]/N);                     //22
-    cpp_vector.push_back(neighbour[2]/N);                     //23
-    cpp_vector.push_back(neighbour[3]/N);                     //24
-    cpp_vector.push_back(neighbour[4]/N);                     //25
+    cpp_vector.push_back(below_avg_dist/N);                 //5
+    cpp_vector.push_back(1-(below_avg_dist/N));             //6
+    cpp_vector.push_back(max_dist/N);                       //7
+    cpp_vector.push_back(min_dist/N);                       //8
+    cpp_vector.push_back(average_dist/N);                   //9
+    cpp_vector.push_back(std_dist/N);                       //10
+    cpp_vector.push_back(below_avg_conf/N);                 //11
+    cpp_vector.push_back(1-(below_avg_conf/N));             //12
+    cpp_vector.push_back(max_conf/N);                       //13
+    cpp_vector.push_back(min_conf/N);                       //14
+    cpp_vector.push_back(average_conf/N);                   //15
+    cpp_vector.push_back(std_conf/N);                       //16
+    cpp_vector.push_back(max_dist/total_nodes);             //17
+    cpp_vector.push_back(min_dist/total_nodes);             //18
+    cpp_vector.push_back(average_dist/total_nodes);         //19
+    cpp_vector.push_back(std_dist/total_nodes);             //20
+    cpp_vector.push_back(max_conf/total_nodes);             //21
+    cpp_vector.push_back(min_conf/total_nodes);             //22
+    cpp_vector.push_back(average_conf/total_nodes);         //23
+    cpp_vector.push_back(std_conf/total_nodes);             //24
+    cpp_vector.push_back(neighbour[0]/N);                   //25
+    cpp_vector.push_back(neighbour[1]/N);                   //26
+    cpp_vector.push_back(neighbour[2]/N);                   //27
+    cpp_vector.push_back(neighbour[3]/N);                   //28
+    cpp_vector.push_back(neighbour[4]/N);                   //29
 
     
   
 
     if (parent == nullptr) {
       // initialize
-      std::cout<<"First point\n";
+      // std::cout<<"First point\n";
       for (size_t i = 0; i < N; ++i) priorities[i] = (float)D.get(i, C[i]) / N;
     } 
     else {
@@ -301,10 +317,10 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       x = x.unsqueeze(0);
       // std::cout<<x<<"\n";
       std::vector<torch::jit::IValue> input; input.push_back(x);
-      std::cout<<input<<"\n";
+      // std::cout<<input<<"\n";
       auto out = net.forward(input);
       torch::Tensor out_tensor = out.toTensor();
-      std::cout << out<<"\n";
+      // std::cout << out<<"\n";
       // std::cout << typeid(out).name()<<"\n";
       float alpha = out_tensor[0][0].item<float>();
       float beta = out_tensor[0][1].item<float>();
@@ -313,11 +329,11 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       for (size_t i = 0; i < N; ++i) {
         float cur_dist = D.get(i, C[i]);
         if (cur_dist != 0) {
-          double z_d = (cur_dist-average_dist)/std_dist; z_d = std::max(z_d, 1.0); z_d = std::min(z_d, -1.0);z_d = (z_d+1)/2;
-          double z_c = (D.get_conf(i)-average_conf)/std_conf; z_c = std::max(z_c, 1.0); z_c = std::min(z_c, -1.0);z_c = (z_c+1)/2;
+          double z_d = (cur_dist-average_dist)/std_dist; z_d = std::min(z_d, 1.0); z_d = std::max(z_d, -1.0);z_d = (z_d+1)/2;
+          double z_c = (D.get_conf(i)-average_conf)/std_conf; z_c = std::min(z_c, 1.0); z_c = std::max(z_c, -1.0);z_c = (z_c+1)/2;
           double z_n = (5-Planner::option[i])/5;
-          std::cout<<"alpha = "<<alpha<<", beta = "<<beta<<", gamma = "<<gamma<<"\n";
-          std::cout<<"z_d = "<<z_d<<", z_c = "<<z_c<<", z_n = "<<z_n<<"\n";
+          // std::cout<<"alpha = "<<alpha<<", beta = "<<beta<<", gamma = "<<gamma<<"\n";
+          // std::cout<<"z_d = "<<z_d<<", z_c = "<<z_c<<", z_n = "<<z_n<<"\n";
 
           priorities[i] = float(z_d*alpha+z_c*beta+z_n*gamma);
         } else {  // at goal
@@ -330,10 +346,10 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     std::iota(order.begin(), order.end(), 0);
     std::sort(order.begin(), order.end(),
                 [&](int i, int j) { return priorities[i] > priorities[j]; });
-    for (const auto& element : order) {
-        std::cout << element << " ";
-    }
-    std::cout<<"\n";
+    // for (int i = 0; i<N; i++) {
+    //     std::cout << "ith elem:" << order[i] << " priority:"<<priorities[order[i]]<<"\n";
+    // }
+    
     
   }
 
