@@ -48,7 +48,7 @@ int DistTable::get(int i, int v_id)
 
 void DistTable::update_conf(int i, int j) { 
   if (conf_table[i][j] ==0){
-    conf_table[i][j] ==1;
+    conf_table[i][j] = 1;
     conf_count[i]++;
   } 
   return;
