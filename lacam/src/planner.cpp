@@ -24,6 +24,10 @@ Constraint::Constraint(Constraint* parent, int i, Vertex* v)
 Constraint::~Constraint(){};
 
 uint Node::HNODE_CNT = 0;
+
+float Node::alpha = 0;
+float Node::beta = 0;
+float Node::gamma = 0;
 Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     : C(_C),
       parent(_parent),
@@ -106,17 +110,6 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
 
   // conflicts
 
-  // double max_conf = *std::max_element(Planner::conflict.begin(), Planner::conflict.end());
-  // double min_conf = *std::min_element(Planner::conflict.begin(), Planner::conflict.end());
-  // double average_conf = std::accumulate(Planner::conflict.begin(), Planner::conflict.end(), 0.0) / N;
-  // sumOfSquares = 0.0;
-  // double below_avg_conf;
-  // for (const double value : Planner::conflict) {
-  //     double diff = value - average_conf;
-  //     sumOfSquares += diff * diff;
-  //     if (diff<0) below_avg_conf++;
-  // }
-  // double std_conf = std::sqrt(sumOfSquares / N);
 
   double max_conf = *std::max_element(D.conf_count.begin(), D.conf_count.end());
   double min_conf = *std::min_element(D.conf_count.begin(), D.conf_count.end());
@@ -147,23 +140,22 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   // 'ng_0', 'ng_1', 'ng_2', 'ng_3', 'ng_4',
 
 
-  // set priorities
-
-  // std::cout<<D.conf_count.size()<<","<<below_avg_conf<<","<<below_avg_conf<<"\n";
+ 
   
-  if (generate_dataset){
+  
 
   // Print Stats....
+  if (HNODE_CNT%5 == 1){
     std::cout<<a_g<<","<<a_ng<<",";
     std::cout<<below_avg_dist/N<<","<<1-(below_avg_dist/N)<<","<<max_dist<<","<<min_dist<<","<<average_dist<<","<<std_dist<<",";
     std::cout<<below_avg_conf/N<<","<<1-(below_avg_conf/N)<<","<<max_conf<<","<<min_conf<<","<<average_conf<<","<<std_conf<<",";
     for (int i = 0; i<4; ++i){
       std::cout<<neighbour[i]<<",";
     }
-    std::cout<<neighbour[4]<<"\n";
+    std::cout<<neighbour[4]<<"\n";}
 
   // ************************************************ Distance ******************************************
-    if (h == "distance"){
+  if (h == "distance"){
     if (is_print) std::cout<<h<<"\n";
     if (parent == nullptr) {
       // initialize
@@ -184,9 +176,9 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     std::sort(order.begin(), order.end(),
                 [&](int i, int j) { return priorities[i] > priorities[j]; });}
 
-    // ************************************************ Random ******************************************
+  // ************************************************ Random ******************************************
 
-    else if (h == "random"){
+  else if (h == "random"){
       if (is_print) std::cout<<h<<"\n";
     //random
       if (parent == nullptr) {
@@ -214,9 +206,9 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       std::sort(order.begin(), order.end(),
                 [&](int i, int j) { return priorities[i] > priorities[j]; });}
 
-    // ************************************************ Conflict ******************************************
+  // ************************************************ Conflict ******************************************
 
-    else if (h=="conflict"){
+  else if (h=="conflict"){
       if (is_print) std::cout<<h<<"\n";
     //set order using conflict
       if (parent == nullptr) {
@@ -235,10 +227,9 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       std::iota(order.begin(), order.end(), 0);
       std::sort(order.begin(), order.end(),
                 [&](int i, int j) { return priorities[i] > priorities[j]; });}
-    // ************************************************ Neighbour ******************************************
+  // ************************************************ Neighbour ******************************************
 
-    // set order using option
-    else if (h == "neighbour"){
+  else if (h == "neighbour"){
       if (is_print) std::cout<<h<<"\n";
       if (parent == nullptr) {
         // initialize
@@ -255,9 +246,9 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       }
       std::iota(order.begin(), order.end(), 0);
       std::sort(order.begin(), order.end(),
-                [&](int i, int j) { return priorities[i] > priorities[j]; });}}
+                [&](int i, int j) { return priorities[i] > priorities[j]; });}
 
-  else{
+  else if (h == "ML"){
 
     // 'obstacle_p', 'agent_p', 'a_g', 'a_ng', 'd_below', 'd_above', 1-6
     //    'd_max_agent', 'd_min_agent', 'd_avg_agent', 'd_std_agent', 'c_below', 7-11
@@ -268,72 +259,72 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     // total 29
 
 
+    if (parent == nullptr or HNODE_CNT%40 == 1){
+      // std::cout<<"HNODE_CNT: "<<HNODE_CNT<<"\n";
+      float total_nodes = 922.0;
+      float obstacles = 102.0;
+      torch::Tensor x = torch::tensor({
+        float(obstacles/total_nodes),            //1
+        float(N/total_nodes),                    //2
+        float(a_g),                              //3
+        float(a_ng),                             //4
+        float(below_avg_dist/N),                 //5
+        float(1-(below_avg_dist/N)),             //6
+        float(max_dist/N),                       //7
+        float(min_dist/N),                       //8
+        float(average_dist/N),                   //9
+        float(std_dist/N),                       //10
+        float(below_avg_conf/N),                 //11
+        float(1-(below_avg_conf/N)),             //12
+        float(max_conf/N),                       //13
+        float(min_conf/N),                       //14
+        float(average_conf/N),                   //15
+        float(std_conf/N),                       //16
+        float(max_dist/total_nodes),             //17
+        float(min_dist/total_nodes),             //18
+        float(average_dist/total_nodes),         //19
+        float(std_dist/total_nodes),             //20
+        float(max_conf/total_nodes),             //21
+        float(min_conf/total_nodes),             //22
+        float(average_conf/total_nodes),         //23
+        float(std_conf/total_nodes),             //24
+        float(neighbour[0]/N),                   //25
+        float(neighbour[1]/N),                   //26
+        float(neighbour[2]/N),                   //27
+        float(neighbour[3]/N),                   //28
+        float(neighbour[4]/N)                    //29
+      });
+      // torch::Tensor x = torch::from_blob(cpp_vector.data(), {cpp_vector.size()}, torch::kFloat32);
+      x = x.unsqueeze(0);
+      std::vector<torch::jit::IValue> input; input.push_back(x);
+      
+      
+      
+      torch::Tensor out = net.forward(input).toTensor();
+      // torch::Tensor out_tensor = out.toTensor();
+      alpha = out[0][0].item<float>();
+      beta = out[0][1].item<float>();
+      gamma = out[0][2].item<float>();
+      if (alpha < beta && alpha < gamma) alpha = 0;
+      if (beta < alpha && beta < gamma) beta = 0;
+      if (gamma < alpha && gamma < beta) gamma = 0; 
 
-    float total_nodes = 922.0;
-    float obstacles = 102.0;
-    std::vector<float> cpp_vector;
-    cpp_vector.push_back(obstacles/total_nodes);            //1
-    cpp_vector.push_back(N/total_nodes);                    //2
-    cpp_vector.push_back(a_g);                              //3
-    cpp_vector.push_back(a_ng);                             //4
-    cpp_vector.push_back(below_avg_dist/N);                 //5
-    cpp_vector.push_back(1-(below_avg_dist/N));             //6
-    cpp_vector.push_back(max_dist/N);                       //7
-    cpp_vector.push_back(min_dist/N);                       //8
-    cpp_vector.push_back(average_dist/N);                   //9
-    cpp_vector.push_back(std_dist/N);                       //10
-    cpp_vector.push_back(below_avg_conf/N);                 //11
-    cpp_vector.push_back(1-(below_avg_conf/N));             //12
-    cpp_vector.push_back(max_conf/N);                       //13
-    cpp_vector.push_back(min_conf/N);                       //14
-    cpp_vector.push_back(average_conf/N);                   //15
-    cpp_vector.push_back(std_conf/N);                       //16
-    cpp_vector.push_back(max_dist/total_nodes);             //17
-    cpp_vector.push_back(min_dist/total_nodes);             //18
-    cpp_vector.push_back(average_dist/total_nodes);         //19
-    cpp_vector.push_back(std_dist/total_nodes);             //20
-    cpp_vector.push_back(max_conf/total_nodes);             //21
-    cpp_vector.push_back(min_conf/total_nodes);             //22
-    cpp_vector.push_back(average_conf/total_nodes);         //23
-    cpp_vector.push_back(std_conf/total_nodes);             //24
-    cpp_vector.push_back(neighbour[0]/N);                   //25
-    cpp_vector.push_back(neighbour[1]/N);                   //26
-    cpp_vector.push_back(neighbour[2]/N);                   //27
-    cpp_vector.push_back(neighbour[3]/N);                   //28
-    cpp_vector.push_back(neighbour[4]/N);                   //29
-
+    }
     
   
 
-    if (parent == nullptr) {
-      // initialize
-      // std::cout<<"First point\n";
-      for (size_t i = 0; i < N; ++i) priorities[i] = (float)D.get(i, C[i]) / N;
-    } 
+    if (parent == nullptr) { // initialize
+      for (size_t i = 0; i < N; ++i) priorities[i] = (float)D.get(i, C[i]) / N;} 
     else {
       // dynamic priorities, akin to PIBT
-
-      torch::Tensor x = torch::from_blob(cpp_vector.data(), {cpp_vector.size()}, torch::kFloat32);
-      x = x.unsqueeze(0);
-      // std::cout<<x<<"\n";
-      std::vector<torch::jit::IValue> input; input.push_back(x);
-      // std::cout<<input<<"\n";
-      auto out = net.forward(input);
-      torch::Tensor out_tensor = out.toTensor();
-      // std::cout << out<<"\n";
-      // std::cout << typeid(out).name()<<"\n";
-      float alpha = out_tensor[0][0].item<float>();
-      float beta = out_tensor[0][1].item<float>();
-      float gamma = out_tensor[0][2].item<float>();
-
       for (size_t i = 0; i < N; ++i) {
         float cur_dist = D.get(i, C[i]);
         if (cur_dist != 0) {
-          double z_d = (cur_dist-average_dist)/std_dist; z_d = std::min(z_d, 1.0); z_d = std::max(z_d, -1.0);z_d = (z_d+1)/2;
-          double z_c = (D.get_conf(i)-average_conf)/std_conf; z_c = std::min(z_c, 1.0); z_c = std::max(z_c, -1.0);z_c = (z_c+1)/2;
+          // double z_d = (cur_dist-average_dist)/std_dist; z_d = std::min(z_d, 1.0); z_d = std::max(z_d, -1.0);z_d = (z_d+1)/2;
+          // double z_c = (D.get_conf(i)-average_conf)/std_conf; z_c = std::min(z_c, 1.0); z_c = std::max(z_c, -1.0);z_c = (z_c+1)/2;
+          double z_d = cur_dist/max_dist;
+          double z_c =D.get_conf(i)/max_conf;
           double z_n = (5-Planner::option[i])/5;
-          // std::cout<<"alpha = "<<alpha<<", beta = "<<beta<<", gamma = "<<gamma<<"\n";
-          // std::cout<<"z_d = "<<z_d<<", z_c = "<<z_c<<", z_n = "<<z_n<<"\n";
 
           priorities[i] = float(z_d*alpha+z_c*beta+z_n*gamma);
         } else {  // at goal
@@ -345,13 +336,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     // set order
     std::iota(order.begin(), order.end(), 0);
     std::sort(order.begin(), order.end(),
-                [&](int i, int j) { return priorities[i] > priorities[j]; });
-    // for (int i = 0; i<N; i++) {
-    //     std::cout << "ith elem:" << order[i] << " priority:"<<priorities[order[i]]<<"\n";
-    // }
-    
-    
-  }
+                [&](int i, int j) { return priorities[i] > priorities[j]; });}
 
   
 

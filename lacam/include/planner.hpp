@@ -29,6 +29,12 @@ struct Node {
   const Config C;
   Node* parent;
   static uint HNODE_CNT;  // count high level 
+  static float alpha;
+  static float beta;
+  static float gamma;
+
+
+
   // for low-level search
   std::vector<float> priorities;
   std::vector<int> order;

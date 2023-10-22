@@ -6,7 +6,7 @@ agent = "40"
 heuristic = "distance"
 seed = 1
 heuristics = ['distance', 'conflict', 'neighbour']
-file_path = 'Data/Supervised/32by32_updated.txt'
+file_path = 'Data/Supervised/32by32_updated2.txt'
 file = open(file_path, 'a')
 
 header = 'obstacle_p,agent_p,a_g,a_ng,d_below,d_above,d_max,d_min,d_avg,d_std,c_below,c_above,c_max,c_min,c_avg,c_std,ng_0,ng_1,ng_2,ng_3,ng_4,y1,y2,y3'
@@ -17,7 +17,7 @@ obstacles = 102.0
 # print("here")
 
 for seed in range(100):
-    for agent in [30, 40, 50, 60, 70, 80, 90, 100, 120, 140]:
+    for agent in [20, 50, 80, 100, 120, 150, 200, 250, 300]:
         # print("Inside agent")
         Node = {}
         Node = {}
