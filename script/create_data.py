@@ -15,14 +15,14 @@ total_nodes = 922.0
 obstacles = 102.0
 
 # print("here")
-
+Y = {'distance': 1, 'conflict': 1, 'neighbour': 1}
 for seed in range(100):
     for agent in [20, 50, 80, 100, 120, 150, 200, 250, 300]:
         # print("Inside agent")
         Node = {}
         Node = {}
         results = {}
-        Y = {}
+        
         for h in heuristics:
             Y[h] = 0
         for heuristic in heuristics:
@@ -49,8 +49,8 @@ for seed in range(100):
         print(seed, agent, Node, ",Winner: ", winner)
         Y[winner] = 1
         label = ""
-        for k,v in Y.items():
-            label +=","+str(v)
+        for k in heuristics:
+            label +=","+str(Y[k])
         header = str(obstacles/total_nodes)+","+str(agent/total_nodes)+","
         outlier = int(len(results[winner])*0.1)
         for  i in range(len(results[winner])):
