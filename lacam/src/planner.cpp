@@ -6,7 +6,6 @@
 
 
 uint Constraint::LNODE_CNT = 0;
-// torch::jit::script::Module net = torch::jit::load("./Data/models/traced_model.pt");
 
 Constraint::Constraint() : who(std::vector<int>()), where(Vertices()), depth(0)
 {
@@ -44,47 +43,18 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   bool is_print = false;
   bool generate_dataset = false;
 
-   // try {
-   //      myModule = torch::jit::load("./Data/models/traced_model.pt");
-   //  } catch (const c10::Error& e) {
-   //      std::cerr << "Error loading the script: " << e.what() << std::endl;
-   //      return -1;
-   //  }
-
-  // ************************************************ Distance ******************************************
-                // Percentages of agent at goal and non-goal position 2
-                // Normalised (wrt nodes) Manhattan Distance (min, max, avg, std) 4
-                // Normalised (wrt no of agents) Manhattan Distance (min, max, avg, std) 4
-                // % of agents below or above avg distance 2
-                // Normalised (wrt nodes) no of conflicts of each agent (min, max, avg, std) 4
-                // Normalised (wrt no of agents) no of conflicts of each agent (min, max, avg, std) 4
-                // % of agent below or above avg conflict 2
-                // Option for next node selection (0,1,2,3,4) 
-
-  //  csv order
-  // % goal,% non-goal,
-  // dis_max,dis_min,dis_avg,dis_std 
-  // conf_max,conf_min,conf_avg,conf_std
-  // neighbour 0, 1, 2, 3, 4
-
   // agents at goal or non goal
   float a_g = N;
   float a_ng = 0;
-  std::vector<double> man_dist;
-  man_dist.push_back(1);
+  std::vector<double> man_dist(N);
 
-  // std::cout<<"conflict table:\n";
   for (size_t i = 0; i < N; ++i) {
-    // std::cout<<D.get_conf(i)<<" ";
     float dist = D.get(i, C[i]);
-    
-    if ( dist!= 0) {  //at_goal
-      man_dist.push_back(dist);
+    if ( dist!= 0) {  
+      man_dist[i] = dist;
       a_ng++;
     }
   }
-  // std::cout<<"\n";
-  // agents at goal or non goal
   a_g -= a_ng;
   a_g /= N;
   a_ng /= N;
@@ -96,7 +66,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   
   double max_dist = *std::max_element(man_dist.begin(), man_dist.end());
   double min_dist = *std::min_element(man_dist.begin(), man_dist.end());
-  double average_dist = std::accumulate(man_dist.begin(), man_dist.end(), 0.0) / man_dist.size();
+  double average_dist = std::accumulate(man_dist.begin(), man_dist.end(), 0.0) / N;
   double sumOfSquares = 0.0;
   for (const double value : man_dist) {
       double diff = value - average_dist;
@@ -104,7 +74,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       if (diff<0)
         below_avg_dist++;
   }
-  double std_dist = std::sqrt(sumOfSquares / man_dist.size());
+  double std_dist = std::sqrt(sumOfSquares / N);
 
 
 
@@ -139,20 +109,15 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   // 'c_max_node', 'c_min_node', 'c_avg_node','c_std_node', 
   // 'ng_0', 'ng_1', 'ng_2', 'ng_3', 'ng_4',
 
-
- 
-  
-  
-
-  // Print Stats....
-  if (HNODE_CNT%5 == 1){
-    std::cout<<a_g<<","<<a_ng<<",";
-    std::cout<<below_avg_dist/N<<","<<1-(below_avg_dist/N)<<","<<max_dist<<","<<min_dist<<","<<average_dist<<","<<std_dist<<",";
-    std::cout<<below_avg_conf/N<<","<<1-(below_avg_conf/N)<<","<<max_conf<<","<<min_conf<<","<<average_conf<<","<<std_conf<<",";
-    for (int i = 0; i<4; ++i){
-      std::cout<<neighbour[i]<<",";
-    }
-    std::cout<<neighbour[4]<<"\n";}
+  // // Print Stats....
+  // if (HNODE_CNT%5 == 1){
+  //   std::cout<<a_g<<","<<a_ng<<",";
+  //   std::cout<<below_avg_dist/N<<","<<1-(below_avg_dist/N)<<","<<max_dist<<","<<min_dist<<","<<average_dist<<","<<std_dist<<",";
+  //   std::cout<<below_avg_conf/N<<","<<1-(below_avg_conf/N)<<","<<max_conf<<","<<min_conf<<","<<average_conf<<","<<std_conf<<",";
+  //   for (int i = 0; i<4; ++i){
+  //     std::cout<<neighbour[i]<<",";
+  //   }
+  //   std::cout<<neighbour[4]<<"\n";}
 
   // ************************************************ Distance ******************************************
   if (h == "distance"){
@@ -250,7 +215,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
 
   else if (h == "ML"){
 
-    // 'obstacle_p', 'agent_p', 'a_g', 'a_ng', 'd_below', 'd_above', 1-6
+    //    'obstacle_p', 'agent_p', 'a_g', 'a_ng', 'd_below', 'd_above', 1-6
     //    'd_max_agent', 'd_min_agent', 'd_avg_agent', 'd_std_agent', 'c_below', 7-11
     //    'c_above', 'c_max_agent', 'c_min_agent', 'c_avg_agent', 'c_std_agent', 12-16
     //    'd_max_node', 'd_min_node', 'd_avg_node', 'd_std_node', 'c_max_node', 17-21
@@ -258,9 +223,9 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     //    'ng_3', 'ng_4' 28-29
     // total 29
 
-
-    if (parent == nullptr or HNODE_CNT%40 == 1){
-      // std::cout<<"HNODE_CNT: "<<HNODE_CNT<<"\n";
+    
+    // determine alpha, beta, gamma
+    if (parent == nullptr or HNODE_CNT%20 == 1){
       float total_nodes = 922.0;
       float obstacles = 102.0;
       torch::Tensor x = torch::tensor({
@@ -294,14 +259,9 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
         float(neighbour[3]/N),                   //28
         float(neighbour[4]/N)                    //29
       });
-      // torch::Tensor x = torch::from_blob(cpp_vector.data(), {cpp_vector.size()}, torch::kFloat32);
       x = x.unsqueeze(0);
       std::vector<torch::jit::IValue> input; input.push_back(x);
-      
-      
-      
       torch::Tensor out = net.forward(input).toTensor();
-      // torch::Tensor out_tensor = out.toTensor();
       alpha = out[0][0].item<float>();
       beta = out[0][1].item<float>();
       gamma = out[0][2].item<float>();
@@ -309,36 +269,77 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       if (beta < alpha && beta < gamma) beta = 0;
       if (gamma < alpha && gamma < beta) gamma = 0; 
 
-    }
-    
-  
+      
 
-    if (parent == nullptr) { // initialize
-      for (size_t i = 0; i < N; ++i) priorities[i] = (float)D.get(i, C[i]) / N;} 
+    }
+      double lower_bound = 0.0001;
+      double upper_bound = 0.0009;
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<double> dist(lower_bound, upper_bound);
+
+    // std::cout<<"For Node: "<<HNODE_CNT<<"\n";
+    // std::cout<<"("<<alpha<<", "<<beta<<", "<<gamma<<")"<<"\n";
+    std::vector<float> CP(N);
+
+    if (parent == nullptr){
+      for (size_t i = 0; i < N; ++i) {
+        priorities[i] = (float)D.get(i, C[i]) / N;
+        CP[i] = priorities[i];
+      }
+    } 
     else {
-      // dynamic priorities, akin to PIBT
+      double max_init = *std::max_element(parent->priorities.begin(), parent->priorities.end());
+      // std::cout<<"Max priorities : "<<max_init<<"\n";
       for (size_t i = 0; i < N; ++i) {
         float cur_dist = D.get(i, C[i]);
         if (cur_dist != 0) {
-          // double z_d = (cur_dist-average_dist)/std_dist; z_d = std::min(z_d, 1.0); z_d = std::max(z_d, -1.0);z_d = (z_d+1)/2;
-          // double z_c = (D.get_conf(i)-average_conf)/std_conf; z_c = std::min(z_c, 1.0); z_c = std::max(z_c, -1.0);z_c = (z_c+1)/2;
-          double z_d = cur_dist/max_dist;
-          double z_c =D.get_conf(i)/max_conf;
+          priorities[i] = parent->priorities[i];
+          // double z_d = (cur_dist-average_dist)/(std_dist+0.0001); z_d = std::min(z_d, 1.0); z_d = std::max(z_d, -1.0);z_d = (z_d+1)/2;
+          double z_c = (D.get_conf(i)-average_conf)/(std_conf+0.0001); z_c = std::min(z_c, 1.0); z_c = std::max(z_c, -1.0);z_c = (z_c+1)/2;
+          // double z_d = cur_dist/(max_dist+1);
+          // double z_c =D.get_conf(i)/(max_conf+1);
           double z_n = (5-Planner::option[i])/5;
-
-          priorities[i] = float(z_d*alpha+z_c*beta+z_n*gamma);
-        } else {  // at goal
-          priorities[i] = 0;
+          
+          double z_d = priorities[i]/max_init;
+          
+          CP[i] = float(z_d*alpha+z_c*beta+z_n*gamma)+dist(gen);
+          // CP[i] = z_d + dist(gen);
+        } 
+        else {  // at goal
+          priorities[i] = parent->priorities[i] - (int)parent->priorities[i];
+          CP[i] = priorities[i];
         }
       }
     }
 
+    
+    
+    // std::iota(order.begin(), order.end(), 0);
+    // std::sort(order.begin(), order.end(),
+    //             [&](int i, int j) { return priorities[i] > priorities[j]; });
+
+    // std::cout<<"******* Ordering by priorities ***********\n";
+    // for (int i = 0; i<N; i++){
+    //   std::cout<<order[i]<<"->";
+    // }
+    // std::cout<<"\n";
+
+
     // set order
     std::iota(order.begin(), order.end(), 0);
     std::sort(order.begin(), order.end(),
-                [&](int i, int j) { return priorities[i] > priorities[j]; });}
+                [&](int i, int j) { return CP[i] > CP[j]; });
 
-  
+    // std::cout<<"******* Ordering by CP ***********\n";
+    // for (int i = 0; i<N; i++){
+    //   std::cout<<order[i]<<"->";
+    // }
+    // std::cout<<"\n";
+
+  }
+
+    
 
 }
 
