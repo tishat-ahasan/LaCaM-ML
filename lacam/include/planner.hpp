@@ -29,10 +29,12 @@ struct Node {
   const Config C;
   Node* parent;
   static uint HNODE_CNT;  // count high level 
-  static float alpha;
-  static float beta;
-  static float gamma;
-
+  float alpha;
+  float beta;
+  float gamma;
+  static torch::jit::script::Module net;
+  int depth;
+  int child = 0;
 
 
   // for low-level search
@@ -40,7 +42,7 @@ struct Node {
   std::vector<int> order;
   std::queue<Constraint*> search_tree;
   const std::string h;
-  torch::jit::script::Module net;
+  
 
   Node(Config _C, DistTable& D, const std::string& _h, Node* _parent = nullptr);
   ~Node();

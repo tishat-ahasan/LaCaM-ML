@@ -24,18 +24,25 @@ Constraint::~Constraint(){};
 
 uint Node::HNODE_CNT = 0;
 
-float Node::alpha = 0;
-float Node::beta = 0;
-float Node::gamma = 0;
+
+torch::jit::script::Module Node::net = torch::jit::load("./Data/models/traced_model.pt");
 Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     : C(_C),
       parent(_parent),
       priorities(C.size(), 0),
       order(C.size(), 0),
       search_tree(std::queue<Constraint*>()),
-      h(_h),
-      net(torch::jit::load("./Data/models/traced_model.pt"))
-{
+      h(_h)
+      {
+  if (parent == nullptr){
+    depth = 1;
+  }
+  else{
+    parent->child++;
+    depth = parent->depth+1;
+    // std::cout<<"Child: "<<parent->child<<"\n";
+  }
+  
   ++HNODE_CNT;
   search_tree.push(new Constraint());
   const auto N = C.size();
@@ -225,7 +232,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
 
     
     // determine alpha, beta, gamma
-    if (parent == nullptr or HNODE_CNT%20 == 1){
+    if (parent != nullptr and parent->child == 1){
       float total_nodes = 922.0;
       float obstacles = 102.0;
       torch::Tensor x = torch::tensor({
@@ -262,16 +269,14 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       x = x.unsqueeze(0);
       std::vector<torch::jit::IValue> input; input.push_back(x);
       torch::Tensor out = net.forward(input).toTensor();
-      alpha = out[0][0].item<float>();
-      beta = out[0][1].item<float>();
-      gamma = out[0][2].item<float>();
-      if (alpha < beta && alpha < gamma) alpha = 0;
-      if (beta < alpha && beta < gamma) beta = 0;
-      if (gamma < alpha && gamma < beta) gamma = 0; 
-
-      
-
+      parent->alpha = out[0][0].item<float>();
+      parent->beta = out[0][1].item<float>();
+      parent->gamma = out[0][2].item<float>();
+      if (parent->alpha < parent->beta && parent->alpha < parent->gamma) parent->alpha = 0;
+      if (parent->beta < parent->alpha && parent->beta < parent->gamma) parent->beta = 0;
+      if (parent->gamma < parent->alpha && parent->gamma < parent->beta) parent->gamma = 0; 
     }
+
       double lower_bound = 0.0001;
       double upper_bound = 0.0009;
       std::random_device rd;
@@ -303,7 +308,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
           
           double z_d = priorities[i]/max_init;
           
-          CP[i] = float(z_d*alpha+z_c*beta+z_n*gamma)+dist(gen);
+          CP[i] = float(z_d*parent->alpha+z_c*parent->beta+z_n*parent->gamma)+dist(gen);
           // CP[i] = z_d + dist(gen);
         } 
         else {  // at goal
