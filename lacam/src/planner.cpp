@@ -26,6 +26,7 @@ uint Node::HNODE_CNT = 0;
 
 
 torch::jit::script::Module Node::net = torch::jit::load("./Data/models/traced_model.pt");
+
 Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     : C(_C),
       parent(_parent),
@@ -108,6 +109,51 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     neighbour[Planner::option[i]]++;
   }
 
+  float total_nodes = 922.0;
+  float obstacles = 102.0;
+  torch::Tensor x;
+  std::vector<torch::jit::IValue> input; 
+  if (parent != nullptr && (depth >= 2 || depth % 10 == 0) && parent->child == 1){
+    x = torch::tensor({
+          float(obstacles/total_nodes),            //1
+          float(N/total_nodes),                    //2
+          float(a_g),                              //3
+          float(a_ng),                             //4
+          float(below_avg_dist/N),                 //5
+          float(1-(below_avg_dist/N)),             //6
+          float(max_dist/N),                       //7
+          float(min_dist/N),                       //8
+          float(average_dist/N),                   //9
+          float(std_dist/N),                       //10
+          float(below_avg_conf/N),                 //11
+          float(1-(below_avg_conf/N)),             //12
+          float(max_conf/N),                       //13
+          float(min_conf/N),                       //14
+          float(average_conf/N),                   //15
+          float(std_conf/N),                       //16
+          float(max_dist/total_nodes),             //17
+          float(min_dist/total_nodes),             //18
+          float(average_dist/total_nodes),         //19
+          float(std_dist/total_nodes),             //20
+          float(max_conf/total_nodes),             //21
+          float(min_conf/total_nodes),             //22
+          float(average_conf/total_nodes),         //23
+          float(std_conf/total_nodes),             //24
+          float(neighbour[0]/N),                   //25
+          float(neighbour[1]/N),                   //26
+          float(neighbour[2]/N),                   //27
+          float(neighbour[3]/N),                   //28
+          float(neighbour[4]/N)                    //29
+        });
+    x = x.unsqueeze(0);
+    input.push_back(x);
+    net.eval();
+  
+    torch::Tensor out = net.forward(input).toTensor();
+    parent->alpha = out[0][0].item<float>();
+    parent->beta = out[0][1].item<float>();
+    parent->gamma = out[0][2].item<float>();
+  }
   
   // 'obstacle_p', 'agent_p', 'a_g', 'a_ng', 
   // below_avg_dist, above_avg_dist, 'd_max_agent','d_min_agent', 'd_avg_agent', 'd_std_agent', 
@@ -231,57 +277,84 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     // total 29
 
     
-    // determine alpha, beta, gamma
-    if (parent != nullptr and parent->child == 1){
-      float total_nodes = 922.0;
-      float obstacles = 102.0;
-      torch::Tensor x = torch::tensor({
-        float(obstacles/total_nodes),            //1
-        float(N/total_nodes),                    //2
-        float(a_g),                              //3
-        float(a_ng),                             //4
-        float(below_avg_dist/N),                 //5
-        float(1-(below_avg_dist/N)),             //6
-        float(max_dist/N),                       //7
-        float(min_dist/N),                       //8
-        float(average_dist/N),                   //9
-        float(std_dist/N),                       //10
-        float(below_avg_conf/N),                 //11
-        float(1-(below_avg_conf/N)),             //12
-        float(max_conf/N),                       //13
-        float(min_conf/N),                       //14
-        float(average_conf/N),                   //15
-        float(std_conf/N),                       //16
-        float(max_dist/total_nodes),             //17
-        float(min_dist/total_nodes),             //18
-        float(average_dist/total_nodes),         //19
-        float(std_dist/total_nodes),             //20
-        float(max_conf/total_nodes),             //21
-        float(min_conf/total_nodes),             //22
-        float(average_conf/total_nodes),         //23
-        float(std_conf/total_nodes),             //24
-        float(neighbour[0]/N),                   //25
-        float(neighbour[1]/N),                   //26
-        float(neighbour[2]/N),                   //27
-        float(neighbour[3]/N),                   //28
-        float(neighbour[4]/N)                    //29
-      });
-      x = x.unsqueeze(0);
-      std::vector<torch::jit::IValue> input; input.push_back(x);
-      torch::Tensor out = net.forward(input).toTensor();
-      parent->alpha = out[0][0].item<float>();
-      parent->beta = out[0][1].item<float>();
-      parent->gamma = out[0][2].item<float>();
-      if (parent->alpha < parent->beta && parent->alpha < parent->gamma) parent->alpha = 0;
-      if (parent->beta < parent->alpha && parent->beta < parent->gamma) parent->beta = 0;
-      if (parent->gamma < parent->alpha && parent->gamma < parent->beta) parent->gamma = 0; 
-    }
 
-      double lower_bound = 0.0001;
-      double upper_bound = 0.0009;
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      std::uniform_real_distribution<double> dist(lower_bound, upper_bound);
+    // determine alpha, beta, gamma
+    if (parent != nullptr && depth == 2){
+      parent->alpha = 1;
+      parent->beta = 0;
+      parent->gamma = 0;
+    }
+    else if (parent != nullptr && (depth >= 2 || depth % 20 == 0) && parent->child == 1){
+      // std::cout<<"Depth when calculated: "<<depth<<"\n";
+      
+      
+
+      
+
+      // parent->alpha = 1;
+      // parent->beta = 0;
+      // parent->gamma = 0;
+      if (parent->alpha > parent->beta && parent->alpha > parent->gamma) {parent->alpha = 1; parent->beta=0; parent->gamma=0;}
+      if (parent->beta > parent->alpha && parent->beta > parent->gamma) {parent->alpha = 0; parent->beta=1; parent->gamma=0;}
+      if (parent->gamma > parent->alpha && parent->gamma > parent->beta) {parent->alpha = 0; parent->beta=0; parent->gamma=1;}
+    }
+    else if (parent != nullptr &&  parent->child == 1){
+      parent->alpha = parent->parent->alpha;
+      parent->beta = parent->parent->beta;
+      parent->gamma = parent->parent->gamma;
+    }
+    // if (parent != nullptr and parent->child == 1){
+    //   std::cout<<depth<<"\n";
+    //   float total_nodes = 922.0;
+    //   float obstacles = 102.0;
+    //   torch::Tensor x = torch::tensor({
+    //     float(obstacles/total_nodes),            //1
+    //     float(N/total_nodes),                    //2
+    //     float(a_g),                              //3
+    //     float(a_ng),                             //4
+    //     float(below_avg_dist/N),                 //5
+    //     float(1-(below_avg_dist/N)),             //6
+    //     float(max_dist/N),                       //7
+    //     float(min_dist/N),                       //8
+    //     float(average_dist/N),                   //9
+    //     float(std_dist/N),                       //10
+    //     float(below_avg_conf/N),                 //11
+    //     float(1-(below_avg_conf/N)),             //12
+    //     float(max_conf/N),                       //13
+    //     float(min_conf/N),                       //14
+    //     float(average_conf/N),                   //15
+    //     float(std_conf/N),                       //16
+    //     float(max_dist/total_nodes),             //17
+    //     float(min_dist/total_nodes),             //18
+    //     float(average_dist/total_nodes),         //19
+    //     float(std_dist/total_nodes),             //20
+    //     float(max_conf/total_nodes),             //21
+    //     float(min_conf/total_nodes),             //22
+    //     float(average_conf/total_nodes),         //23
+    //     float(std_conf/total_nodes),             //24
+    //     float(neighbour[0]/N),                   //25
+    //     float(neighbour[1]/N),                   //26
+    //     float(neighbour[2]/N),                   //27
+    //     float(neighbour[3]/N),                   //28
+    //     float(neighbour[4]/N)                    //29
+    //   });
+
+    //   x = x.unsqueeze(0);
+    //   std::vector<torch::jit::IValue> input; input.push_back(x);
+    //   torch::Tensor out = net.forward(input).toTensor();
+    //   parent->alpha = out[0][0].item<float>();
+    //   parent->beta = out[0][1].item<float>();
+    //   parent->gamma = out[0][2].item<float>();
+    //   // if (parent->alpha < parent->beta && parent->alpha < parent->gamma) parent->alpha = 0;
+    //   // if (parent->beta < parent->alpha && parent->beta < parent->gamma) parent->beta = 0;
+    //   // if (parent->gamma < parent->alpha && parent->gamma < parent->beta) parent->gamma = 0; 
+    // }
+
+      // double lower_bound = 0.0001;
+      // double upper_bound = 0.0009;
+      // std::random_device rd;
+      // std::mt19937 gen(rd());
+      // std::uniform_real_distribution<double> dist(lower_bound, upper_bound);
 
     // std::cout<<"For Node: "<<HNODE_CNT<<"\n";
     // std::cout<<"("<<alpha<<", "<<beta<<", "<<gamma<<")"<<"\n";
@@ -294,25 +367,27 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
       }
     } 
     else {
-      double max_init = *std::max_element(parent->priorities.begin(), parent->priorities.end());
+      // double max_init = *std::max_element(parent->priorities.begin(), parent->priorities.end());
       // std::cout<<"Max priorities : "<<max_init<<"\n";
       for (size_t i = 0; i < N; ++i) {
         float cur_dist = D.get(i, C[i]);
         if (cur_dist != 0) {
-          priorities[i] = parent->priorities[i];
+          // priorities[i] = parent->priorities[i];
           // double z_d = (cur_dist-average_dist)/(std_dist+0.0001); z_d = std::min(z_d, 1.0); z_d = std::max(z_d, -1.0);z_d = (z_d+1)/2;
-          double z_c = (D.get_conf(i)-average_conf)/(std_conf+0.0001); z_c = std::min(z_c, 1.0); z_c = std::max(z_c, -1.0);z_c = (z_c+1)/2;
-          // double z_d = cur_dist/(max_dist+1);
-          // double z_c =D.get_conf(i)/(max_conf+1);
+          // double z_c = (D.get_conf(i)-average_conf)/(std_conf+0.0001); z_c = std::min(z_c, 1.0); z_c = std::max(z_c, -1.0);z_c = (z_c+1)/2;
+          double z_d = cur_dist+(i/1000);
+          double z_c =D.get_conf(i)+(i/1000);
           double z_n = (5-Planner::option[i])/5;
           
-          double z_d = priorities[i]/max_init;
+          // double z_d = priorities[i]/max_init;
           
-          CP[i] = float(z_d*parent->alpha+z_c*parent->beta+z_n*parent->gamma)+dist(gen);
+          CP[i] = float(z_d*parent->alpha+z_c*parent->beta+z_n*parent->gamma);
           // CP[i] = z_d + dist(gen);
+          // CP[i] = 
         } 
         else {  // at goal
-          priorities[i] = parent->priorities[i] - (int)parent->priorities[i];
+          // priorities[i] = parent->priorities[i] - (int)parent->priorities[i];
+          priorities[i] = -1;
           CP[i] = priorities[i];
         }
       }
