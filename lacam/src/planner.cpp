@@ -109,11 +109,11 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     neighbour[Planner::option[i]]++;
   }
 
-  float total_nodes = 922.0;
-  float obstacles = 102.0;
+  float total_nodes = 922.0; //55793
+  float obstacles = 102.0;  //17004
   torch::Tensor x;
   std::vector<torch::jit::IValue> input; 
-  if (parent != nullptr && (depth >= 2 || depth % 10 == 0) && parent->child == 1){
+  if (parent != nullptr && (depth == 2 || depth % 5 == 0) && parent->child == 1){
     x = torch::tensor({
           float(obstacles/total_nodes),            //1
           float(N/total_nodes),                    //2
@@ -154,6 +154,11 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     parent->beta = out[0][1].item<float>();
     parent->gamma = out[0][2].item<float>();
   }
+  else if (parent != nullptr &&  parent->child == 1){
+      parent->alpha = parent->parent->alpha;
+      parent->beta = parent->parent->beta;
+      parent->gamma = parent->parent->gamma;
+    }
   
   // 'obstacle_p', 'agent_p', 'a_g', 'a_ng', 
   // below_avg_dist, above_avg_dist, 'd_max_agent','d_min_agent', 'd_avg_agent', 'd_std_agent', 
@@ -161,16 +166,17 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   // 'd_max_node', 'd_min_node','d_avg_node', 'd_std_node', 
   // 'c_max_node', 'c_min_node', 'c_avg_node','c_std_node', 
   // 'ng_0', 'ng_1', 'ng_2', 'ng_3', 'ng_4',
+  //depth
 
   // // Print Stats....
-  // if (HNODE_CNT%5 == 1){
-  //   std::cout<<a_g<<","<<a_ng<<",";
-  //   std::cout<<below_avg_dist/N<<","<<1-(below_avg_dist/N)<<","<<max_dist<<","<<min_dist<<","<<average_dist<<","<<std_dist<<",";
-  //   std::cout<<below_avg_conf/N<<","<<1-(below_avg_conf/N)<<","<<max_conf<<","<<min_conf<<","<<average_conf<<","<<std_conf<<",";
-  //   for (int i = 0; i<4; ++i){
-  //     std::cout<<neighbour[i]<<",";
-  //   }
-  //   std::cout<<neighbour[4]<<"\n";}
+  if (generate_dataset == true && HNODE_CNT%5 == 1){
+    std::cout<<a_g<<","<<a_ng<<",";
+    std::cout<<below_avg_dist/N<<","<<1-(below_avg_dist/N)<<","<<max_dist<<","<<min_dist<<","<<average_dist<<","<<std_dist<<",";
+    std::cout<<below_avg_conf/N<<","<<1-(below_avg_conf/N)<<","<<max_conf<<","<<min_conf<<","<<average_conf<<","<<std_conf<<",";
+    for (int i = 0; i<4; ++i){
+      std::cout<<neighbour[i]<<",";
+    }
+    std::cout<<neighbour[4]<<"\n";}
 
   // ************************************************ Distance ******************************************
   if (h == "distance"){
@@ -279,30 +285,26 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     
 
     // determine alpha, beta, gamma
-    if (parent != nullptr && depth == 2){
-      parent->alpha = 1;
-      parent->beta = 0;
-      parent->gamma = 0;
-    }
-    else if (parent != nullptr && (depth >= 2 || depth % 20 == 0) && parent->child == 1){
-      // std::cout<<"Depth when calculated: "<<depth<<"\n";
+    // if (parent != nullptr && depth == 2){
+    //   parent->alpha = 1;
+    //   parent->beta = 0;
+    //   parent->gamma = 0;
+    // }
+    // if (parent != nullptr && (depth == 2 || depth % 20 == 0) && parent->child == 1){
+    //   // std::cout<<"Depth when calculated: "<<depth<<"\n";
       
       
 
       
 
-      // parent->alpha = 1;
-      // parent->beta = 0;
-      // parent->gamma = 0;
-      if (parent->alpha > parent->beta && parent->alpha > parent->gamma) {parent->alpha = 1; parent->beta=0; parent->gamma=0;}
-      if (parent->beta > parent->alpha && parent->beta > parent->gamma) {parent->alpha = 0; parent->beta=1; parent->gamma=0;}
-      if (parent->gamma > parent->alpha && parent->gamma > parent->beta) {parent->alpha = 0; parent->beta=0; parent->gamma=1;}
-    }
-    else if (parent != nullptr &&  parent->child == 1){
-      parent->alpha = parent->parent->alpha;
-      parent->beta = parent->parent->beta;
-      parent->gamma = parent->parent->gamma;
-    }
+    //   // parent->alpha = 1;
+    //   // parent->beta = 0;
+    //   // parent->gamma = 0;
+    //   if (parent->alpha > parent->beta && parent->alpha > parent->gamma) {parent->alpha = 1; parent->beta=0; parent->gamma=0;}
+    //   if (parent->beta > parent->alpha && parent->beta > parent->gamma) {parent->alpha = 0; parent->beta=1; parent->gamma=0;}
+    //   if (parent->gamma > parent->alpha && parent->gamma > parent->beta) {parent->alpha = 0; parent->beta=0; parent->gamma=1;}
+    // }
+    
     // if (parent != nullptr and parent->child == 1){
     //   std::cout<<depth<<"\n";
     //   float total_nodes = 922.0;
@@ -373,10 +375,10 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
         float cur_dist = D.get(i, C[i]);
         if (cur_dist != 0) {
           // priorities[i] = parent->priorities[i];
-          // double z_d = (cur_dist-average_dist)/(std_dist+0.0001); z_d = std::min(z_d, 1.0); z_d = std::max(z_d, -1.0);z_d = (z_d+1)/2;
-          // double z_c = (D.get_conf(i)-average_conf)/(std_conf+0.0001); z_c = std::min(z_c, 1.0); z_c = std::max(z_c, -1.0);z_c = (z_c+1)/2;
-          double z_d = cur_dist+(i/1000);
-          double z_c =D.get_conf(i)+(i/1000);
+          double z_d = (cur_dist-average_dist)/(std_dist+0.0001); z_d = std::min(z_d, 1.0); z_d = std::max(z_d, -1.0);z_d = (z_d+1)/2;
+          double z_c = (D.get_conf(i)-average_conf)/(std_conf+0.0001); z_c = std::min(z_c, 1.0); z_c = std::max(z_c, -1.0);z_c = (z_c+1)/2;
+          // double z_d = cur_dist+(i/1000);
+          // double z_c =D.get_conf(i)+(i/1000);
           double z_n = (5-Planner::option[i])/5;
           
           // double z_d = priorities[i]/max_init;
