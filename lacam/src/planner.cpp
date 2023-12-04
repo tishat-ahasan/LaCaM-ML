@@ -49,7 +49,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   const auto N = C.size();
 
   bool is_print = false;
-  bool generate_dataset = false;
+  bool generate_dataset = true;
 
   // agents at goal or non goal
   float a_g = N;
@@ -113,7 +113,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   float obstacles = 102.0;  //17004
   torch::Tensor x;
   std::vector<torch::jit::IValue> input; 
-  if (parent != nullptr && (depth == 2 || depth % 5 == 0) && parent->child == 1){
+  if (parent != nullptr && (depth == 2 || depth % 3 == 0) && parent->child == 1){
     x = torch::tensor({
           float(obstacles/total_nodes),            //1
           float(N/total_nodes),                    //2
@@ -176,7 +176,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     for (int i = 0; i<4; ++i){
       std::cout<<neighbour[i]<<",";
     }
-    std::cout<<neighbour[4]<<"\n";}
+    std::cout<<neighbour[4]<<","<<depth<<"\n";}
 
   // ************************************************ Distance ******************************************
   if (h == "distance"){

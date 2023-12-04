@@ -1,23 +1,25 @@
 import subprocess
 
 # Run 'sudo apt update' and capture the output
-map_name = "assets/random-32-32-10.map"
+map_name = "assets/warehouse.map"
 agent = "40"
 heuristic = "distance"
 seed = 1
 heuristics = ['distance', 'conflict', 'neighbour']
-file_path = 'Data/Supervised/32by32_updated2.txt'
+file_path = 'Data/Supervised/warehouse.txt'
 file = open(file_path, 'a')
 
-header = 'obstacle_p,agent_p,a_g,a_ng,d_below,d_above,d_max,d_min,d_avg,d_std,c_below,c_above,c_max,c_min,c_avg,c_std,ng_0,ng_1,ng_2,ng_3,ng_4,y1,y2,y3'
+header = 'obstacle_p,agent_p,a_g,a_ng,d_below,d_above,d_max,d_min,d_avg,d_std,c_below,c_above,c_max,c_min,c_avg,c_std,ng_0,ng_1,ng_2,ng_3,ng_4,depth,y1,y2,y3'
 file.write(header+'\n')
-total_nodes = 922.0
-obstacles = 102.0
+# total_nodes = 922.0
+# obstacles = 102.0
+total_nodes = 55793
+obstacles = 17004
 
 # print("here")
 Y = {'distance': 1, 'conflict': 1, 'neighbour': 1}
-for seed in range(100):
-    for agent in [20, 50, 80, 100, 120, 150, 200, 250, 300]:
+for seed in range(5):
+    for agent in [50, 250, 500, 750, 1000]:
         # print("Inside agent")
         Node = {}
         Node = {}
