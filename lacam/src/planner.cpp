@@ -25,7 +25,7 @@ Constraint::~Constraint(){};
 uint Node::HNODE_CNT = 0;
 
 
-torch::jit::script::Module Node::net = torch::jit::load("./Data/models/traced_model.pt");
+torch::jit::script::Module Node::net = torch::jit::load("./Data/models/traced_model_warehouse.pt");
 
 Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     : C(_C),
@@ -49,7 +49,7 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
   const auto N = C.size();
 
   bool is_print = false;
-  bool generate_dataset = true;
+  bool generate_dataset = false;
 
   // agents at goal or non goal
   float a_g = N;
@@ -109,8 +109,8 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
     neighbour[Planner::option[i]]++;
   }
 
-  float total_nodes = 922.0; //55793
-  float obstacles = 102.0;  //17004
+  float total_nodes = 55793.0; //922.0
+  float obstacles = 17004.0;  //102.0
   torch::Tensor x;
   std::vector<torch::jit::IValue> input; 
   if (parent != nullptr && (depth == 2 || depth % 3 == 0) && parent->child == 1){
@@ -143,7 +143,8 @@ Node::Node(Config _C, DistTable& D, const std::string& _h, Node* _parent)
           float(neighbour[1]/N),                   //26
           float(neighbour[2]/N),                   //27
           float(neighbour[3]/N),                   //28
-          float(neighbour[4]/N)                    //29
+          float(neighbour[4]/N),                   //29
+          float(depth/N)                           //30
         });
     x = x.unsqueeze(0);
     input.push_back(x);

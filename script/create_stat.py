@@ -1,7 +1,7 @@
 import subprocess
 
 # Run 'sudo apt update' and capture the output
-map_name = "assets/random-32-32-10.map"
+map_name = "assets/warehouse.map"
 agent = "40"
 heuristic = "distance"
 seed = 1
@@ -16,9 +16,9 @@ obstacles = 102.0
 
 # print("here")
 winners = {}
-for agent in [50, 100, 150, 200, 250]:
+for agent in [50, 100, 250, 500, 1000]:
     # time = {'ML': 0,'distance': 0, 'conflict':0, 'neighbour':0}
-    for seed in range(500):
+    for seed in range(5):
         # print("Inside agent")
         Node = {}
         results = {}
